@@ -1,0 +1,7 @@
+$ python enhanced_bpm/tests/run_single_test.py
+test_maturity_models (test_bpm_principles.TestBPMPrinciples.test_maturity_models) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+OK

@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPM Principles Explorer - Maturity Assessment</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/enhanced-styles.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-diagram-3"></i> BPM Principles Explorer
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="bi bi-book"></i> BPM Knowledge Base
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('industry_analyzer') }}">
+                            <i class="bi bi-graph-up"></i> Industry Analyzer
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('process_modeler') }}">
+                            <i class="bi bi-diagram-2"></i> Process Modeler
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-tools"></i> Tools
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item active" href="{{ url_for('maturity_assessment') }}">
+                                    <i class="bi bi-check2-square"></i> Maturity Assessment
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('process_simulator') }}">
+                                    <i class="bi bi-play-circle"></i> Process Simulator
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('roi_calculator') }}">
+                                    <i class="bi bi-calculator"></i> ROI Calculator
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('data_manager') }}">
+                                    <i class="bi bi-database"></i> Data Manager
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <div class="form-check form-switch me-3">
+                        <input class="form-check-input" type="checkbox" id="darkModeToggle">
+                        <label class="form-check-label text-light" for="darkModeToggle">
+                            <i class="bi bi-moon"></i>
+                        </label>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> User
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i> Settings</a></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-cloud-arrow-up me-2"></i> Upload Data</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <div class="container-fluid py-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-lg-3 col-xl-2 mb-4">
+                <div class="sidebar">
+                    <h4 class="sidebar-header">Assessment</h4>
+                    <div class="list-group list-group-flush">
+                        <a href="#overview" class="list-group-item list-group-item-action active" id="nav-overview">
+                            <i class="bi bi-info-circle"></i> Overview
+                        </a>
+                        {% for dimension in assessment_model.dimensions %}
+                        <a href="#dimension{{ loop.index }}" class="list-group-item list-group-item-action" id="nav-dimension{{ loop.index }}">
+                            <i class="bi bi-{{ dimension.icon }}"></i> {{ dimension.name }}
+                        </a>
+                        {% endfor %}
+                        <a href="#results" class="list-group-item list-group-item-action" id="nav-results">
+                            <i class="bi bi-graph-up"></i> Results
+                        </a>
+                    </div>
+                    
+                    <h4 class="sidebar-header mt-4">Actions</h4>
+                    <div class="d-grid gap-2">
+                        <button id="saveAssessmentBtn" class="btn btn-primary">
+                            <i class="bi bi-save"></i> Save Assessment
+                        </button>
+                        <button id="exportReportBtn" class="btn btn-outline-primary">
+                            <i class="bi bi-download"></i> Export Report
+                        </button>
+                        <button id="resetAssessmentBtn" class="btn btn-outline-danger">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset Assessment
+                        </button>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Assessment Progress</h5>
+                                <div class="progress mb-3">
+                                    <div class="progress-bar" role="progressbar" id="assessmentProgress" style="width: 0%"></div>
+                                </div>
+                                <p class="mb-0"><span id="completedQuestions">0</span> of <span id="totalQuestions">{{ assessment_model.total_questions }}</span> questions answered</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="col-lg-9 col-xl-10">
+                <form id="assessmentForm">
+                    <!-- Overview Section -->
+                    <section id="overview" class="mb-5">
+                        <div class="card">
+                            <div class="card-header bg-primary text-white">
+                                <h2 class="mb-0"><i class="bi bi-info-circle me-2"></i> BPM Maturity Assessment</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <h3>Welcome to the BPM Maturity Assessment</h3>
+                                        <p>This assessment will help you evaluate your organization's Business Process Management maturity across multiple dimensions. The results will provide insights into your current state and recommendations for improvement.</p>
+                                        
+                                        <h4 class="mt-4">Assessment Structure</h4>
+                                        <p>The assessment consists of {{ assessment_model.total_questions }} questions across {{ assessment_model.dimensions|length }} key dimensions:</p>
+                                        
+                                        <div class="row mt-3">
+                                            {% for dimension in assessment_model.dimensions %}
+                                            <div class="col-md-6 mb-3">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="dimension-icon bg-{{ dimension.color }} me-3">
+                                                        <i class="bi bi-{{ dimension.icon }}"></i>
+                                                    </div>
+                                                    <div>
+                                                        <h5 class="mb-0">{{ dimension.name }}</h5>
+                                                        <p class="mb-0 text-muted">{{ dimension.questions|length }} questions</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        <h4 class="mt-4">Instructions</h4>
+                                        <ul>
+                                            <li>Answer all questions as honestly as possible based on your organization's current state.</li>
+                                            <li>For each question, select the option that best describes your organization's practices.</li>
+                                            <li>You can save your progress at any time and return to complete the assessment later.</li>
+                                            <li>After completing all questions, you'll receive a detailed report with your maturity score and recommendations.</li>
+                                        </ul>
+                                        
+                                        <div class="mt-4">
+                                            <a href="#dimension1" class="btn btn-primary btn-lg" id="startAssessmentBtn">
+                                                <i class="bi bi-play-fill me-2"></i> Start Assessment
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 d-none d-md-block">
+                                        <div class="card h-100">
+                                            <div class="card-body text-center">
+                                                <img src="{{ url_for('static', filename='img/maturity-levels.svg') }}" alt="Maturity Levels" class="img-fluid mb-3" style="max-height: 300px;">
+                                                <h5>Maturity Levels</h5>
+                                                <div class="d-flex justify-content-between mt-3">
+                                                    <span class="badge bg-danger">Level 1<br>Initial</span>
+                                                    <span class="badge bg-warning text-dark">Level 2<br>Managed</span>
+                                                    <span class="badge bg-info">Level 3<br>Defined</span>
+                                                    <span class="badge bg-primary">Level 4<br>Quantitative</span>
+                                                    <span class="badge bg-success">Level 5<br>Optimizing</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Dimension Sections -->
+                    {% for dimension in assessment_model.dimensions %}
+                    <section id="dimension{{ loop.index }}" class="mb-5" style="display: none;">
+                        <div class="card">
+                            <div class="card-header bg-{{ dimension.color }} text-white">
+                                <h2 class="mb-0"><i class="bi bi-{{ dimension.icon }} me-2"></i> {{ dimension.name }}</h2>
+                            </div>
+                            <div class="card-body">
+                                <p class="lead">{{ dimension.description }}</p>
+                                
+                                <div class="questions-container">
+                                    {% for question in dimension.questions %}
+                                    <div class="question-card mb-4">
+                                        <h4>{{ loop.index }}. {{ question.text }}</h4>
+                                        <p class="text-muted">{{ question.description }}</p>
+                                        
+                                        <div class="maturity-options">
+                                            {% for option in question.options %}
+                                            <div class="form-check maturity-option">
+                                                <input class="form-check-input question-input" type="radio" 
+                                                       name="question_{{ dimension.id }}_{{ question.id }}" 
+                                                       id="option_{{ dimension.id }}_{{ question.id }}_{{ loop.index }}" 
+                                                       value="{{ loop.index }}"
+                                                       data-dimension="{{ dimension.id }}"
+                                                       data-question="{{ question.id }}">
+                                                <label class="form-check-label" for="option_{{ dimension.id }}_{{ question.id }}_{{ loop.index }}">
+                                                    <div class="maturity-level-indicator level-{{ loop.index }}">
+                                                        <span class="level-number">{{ loop.index }}</span>
+                                                    </div>
+                                                    <div class="maturity-level-content">
+                                                        <h5>{{ option.title }}</h5>
+                                                        <p>{{ option.description }}</p>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                
+                                <div class="d-flex justify-content-between mt-4">
+                                    {% if loop.index > 1 %}
+                                    <button type="button" class="btn btn-outline-primary prev-dimension-btn" data-target="dimension{{ loop.index - 1 }}">
+                                        <i class="bi bi-arrow-left me-2"></i> Previous: {{ assessment_model.dimensions[loop.index - 2].name }}
+                                    </button>
+                                    {% else %}
+                                    <button type="button" class="btn btn-outline-primary prev-dimension-btn" data-target="overview">
+                                        <i class="bi bi-arrow-left me-2"></i> Back to Overview
+                                    </button>
+                                    {% endif %}
+                                    
+                                    {% if loop.index < assessment_model.dimensions|length %}
+                                    <button type="button" class="btn btn-primary next-dimension-btn" data-target="dimension{{ loop.index + 1 }}">
+                                        Next: {{ assessment_model.dimensions[loop.index].name }} <i class="bi bi-arrow-right ms-2"></i>
+                                    </button>
+                                    {% else %}
+                                    <button type="button" class="btn btn-success next-dimension-btn" data-target="results">
+                                        View Results <i class="bi bi-graph-up ms-2"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    {% endfor %}
+
+                    <!-- Results Section -->
+                    <section id="results" class="mb-5" style="display: none;">
+                        <div class="card">
+                            <div class="card-header bg-success text-white">
+                                <h2 class="mb-0"><i class="bi bi-graph-up me-2"></i> Assessment Results</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-body text-center">
+                                                <h4 class="mb-3">Overall Maturity Level</h4>
+                                                <div class="maturity-gauge-container">
+                                                    <canvas id="overallMaturityGauge"></canvas>
+                                                    <div class="maturity-gauge-value">
+                                                        <h2 id="overallMaturityScore">-</h2>
+                                                        <p id="overallMaturityLabel">Not calculated</p>
+                                                    </div>
+                                                </div>
+                                                <div class="mt-3">
+                                                    <p id="overallMaturityDescription" class="mb-0"></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <h4 class="mb-3">Dimension Scores</h4>
+                                                <div class="chart-container" style="position: relative; height:300px;">
+                                                    <canvas id="dimensionScoresChart"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-12 mb-4">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h4 class="mb-3">Detailed Dimension Analysis</h4>
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Dimension</th>
+                                                                <th>Score</th>
+                                                                <th>Maturity Level</th>
+                                                                <th>Strengths</th>
+                                                                <th>Improvement Areas</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody id="dimensionAnalysisTable">
+                                                            <!-- Will be populated by JavaScript -->
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-12 mb-4">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h4 class="mb-0">Recommendations</h4>
+                                            </div>
+                                            <div class="card-body">
+                                                <div id="recommendationsContainer">
+                                                    <!-- Will be populated by JavaScript -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="card">
+                                            <div class="card-header">
+                                                <h4 class="mb-0">Maturity Roadmap</h4>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="roadmap-container">
+                                                    <div class="roadmap-timeline">
+                                                        <div class="roadmap-phase">
+                                                            <div class="roadmap-phase-header">
+                                                                <h5>Phase 1: Foundation (0-6 months)</h5>
+                                                            </div>
+                                                            <div class="roadmap-phase-content" id="roadmapPhase1">
+                                                                <!-- Will be populated by JavaScript -->
+                                                            </div>
+                                                        </div>
+                                                        <div class="roadmap-phase">
+                                                            <div class="roadmap-phase-header">
+                                                                <h5>Phase 2: Standardization (6-12 months)</h5>
+                                                            </div>
+                                                            <div class="roadmap-phase-content" id="roadmapPhase2">
+                                                                <!-- Will be populated by JavaScript -->
+                                                            </div>
+                                                        </div>
+                                                        <div class="roadmap-phase">
+                                                            <div class="roadmap-phase-header">
+                                                                <h5>Phase 3: Optimization (12-24 months)</h5>
+                                                            </div>
+                                                            <div class="roadmap-phase-content" id="roadmapPhase3">
+                                                                <!-- Will be populated by JavaScript -->
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between mt-4">
+                                    <button type="button" class="btn btn-outline-primary prev-dimension-btn" data-target="dimension{{ assessment_model.dimensions|length }}">
+                                        <i class="bi bi-arrow-left me-2"></i> Back to Assessment
+                                    </button>
+                                    <div>
+                                        <button type="button" class="btn btn-primary me-2" id="saveResultsBtn">
+                                            <i class="bi bi-save me-2"></i> Save Results
+                                        </button>
+                                        <button type="button" class="btn btn-success" id="downloadReportBtn">
+                                            <i class="bi bi-file-earmark-pdf me-2"></i> Download Full Report
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h4 class="footer-title">BPM Principles Explorer</h4>
+                    <p>Your comprehensive platform for exploring, analyzing, and implementing Business Process Management principles, methodologies, and best practices.</p>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h4 class="footer-title">Explore</h4>
+                    <ul class="footer-links">
+                        <li class="footer-link"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                        <li class="footer-link"><a href="{{ url_for('index') }}">Knowledge Base</a></li>
+                        <li class="footer-link"><a href="{{ url_for('industry_analyzer') }}">Industry Analyzer</a></li>
+                        <li class="footer-link"><a href="{{ url_for('process_modeler') }}">Process Modeler</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h4 class="footer-title">Tools</h4>
+                    <ul class="footer-links">
+                        <li class="footer-link"><a href="{{ url_for('maturity_assessment') }}">Maturity Assessment</a></li>
+                        <li class="footer-link"><a href="{{ url_for('process_simulator') }}">Process Simulator</a></li>
+                        <li class="footer-link"><a href="{{ url_for('roi_calculator') }}">ROI Calculator</a></li>
+                        <li class="footer-link"><a href="{{ url_for('data_manager') }}">Data Manager</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h4 class="footer-title">Resources</h4>
+                    <ul class="footer-links">
+                        <li class="footer-link"><a href="{{ url_for('help') }}">Help & Documentation</a></li>
+                        <li class="footer-link"><a href="{{ url_for('api_docs') }}">API Documentation</a></li>
+                        <li class="footer-link"><a href="{{ url_for('tutorials') }}">Tutorials</a></li>
+                        <li class="footer-link"><a href="{{ url_for('faq') }}">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h4 class="footer-title">About</h4>
+                    <ul class="footer-links">
+                        <li class="footer-link"><a href="{{ url_for('about') }}">About Us</a></li>
+                        <li class="footer-link"><a href="{{ url_for('contact') }}">Contact</a></li>
+                        <li class="footer-link"><a href="{{ url_for('privacy') }}">Privacy Policy</a></li>
+                        <li class="footer-link"><a href="{{ url_for('terms') }}">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2023 BPM Principles Explorer. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scroll to Top Button -->
+    <button id="scrollTopBtn" class="btn btn-primary rounded-circle position-fixed bottom-0 end-0 m-4" style="display: none; z-index: 1000;">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/enhanced-scripts.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Assessment navigation
+            const sections = ['overview', {% for dimension in assessment_model.dimensions %}'dimension{{ loop.index }}', {% endfor %}'results'];
+            const navLinks = document.querySelectorAll('.sidebar .list-group-item');
+            
+            // Function to show a specific section
+            function showSection(sectionId) {
+                // Hide all sections
+                sections.forEach(section => {
+                    const sectionElement = document.getElementById(section);
+                    if (sectionElement) {
+                        sectionElement.style.display = 'none';
+                    }
+                });
+                
+                // Show the selected section
+                const selectedSection = document.getElementById(sectionId);
+                if (selectedSection) {
+                    selectedSection.style.display = 'block';
+                }
+                
+                // Update navigation
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                });
+                
+                const activeNavLink = document.getElementById(`nav-${sectionId}`);
+                if (activeNavLink) {
+                    activeNavLink.classList.add('active');
+                }
+                
+                // Scroll to top
+                window.scrollTo(0, 0);
+            }
+            
+            // Set up navigation click handlers
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetSection = this.getAttribute('href').substring(1);
+                    showSection(targetSection);
+                });
+            });
+            
+            // Set up dimension navigation buttons
+            document.querySelectorAll('.next-dimension-btn, .prev-dimension-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetSection = this.getAttribute('data-target');
+                    showSection(targetSection);
+                });
+            });
+            
+            // Start Assessment button
+            const startAssessmentBtn = document.getElementById('startAssessmentBtn');
+            if (startAssessmentBtn) {
+                startAssessmentBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showSection('dimension1');
+                });
+            }
+            
+            // Track assessment progress
+            const questionInputs = document.querySelectorAll('.question-input');
+            const totalQuestions = questionInputs.length;
+            const progressBar = document.getElementById('assessmentProgress');
+            const completedQuestionsElement = document.getElementById('completedQuestions');
+            const totalQuestionsElement = document.getElementById('totalQuestions');
+            
+            function updateProgress() {
+                const answeredQuestions = document.querySelectorAll('.question-input:checked').length;
+                const progressPercentage = (answeredQuestions / totalQuestions) * 100;
+                
+                progressBar.style.width = `${progressPercentage}%`;
+                completedQuestionsElement.textContent = answeredQuestions;
+                
+                // Update progress bar color based on completion
+                if (progressPercentage < 25) {
+                    progressBar.className = 'progress-bar bg-danger';
+                } else if (progressPercentage < 50) {
+                    progressBar.className = 'progress-bar bg-warning';
+                } else if (progressPercentage < 75) {
+                    progressBar.className = 'progress-bar bg-info';
+                } else if (progressPercentage < 100) {
+                    progressBar.className = 'progress-bar bg-primary';
+                } else {
+                    progressBar.className = 'progress-bar bg-success';
+                }
+            }
+            
+            // Initialize progress
+            if (totalQuestionsElement) {
+                totalQuestionsElement.textContent = totalQuestions;
+            }
+            
+            // Add change event listeners to all question inputs
+            questionInputs.forEach(input => {
+                input.addEventListener('change', updateProgress);
+            });
+            
+            // Calculate and display results
+            const calculateResultsBtn = document.querySelector('.next-dimension-btn[data-target="results"]');
+            if (calculateResultsBtn) {
+                calculateResultsBtn.addEventListener('click', function() {
+                    calculateResults();
+                });
+            }
+            
+            function calculateResults() {
+                // Get all dimension scores
+                const dimensionScores = {};
+                const dimensionData = {{ assessment_model.dimensions|tojson }};
+                
+                dimensionData.forEach(dimension => {
+                    let dimensionTotal = 0;
+                    let answeredQuestions = 0;
+                    
+                    dimension.questions.forEach(question => {
+                        const selectedOption = document.querySelector(`input[name="question_${dimension.id}_${question.id}"]:checked`);
+                        if (selectedOption) {
+                            dimensionTotal += parseInt(selectedOption.value);
+                            answeredQuestions++;
+                        }
+                    });
+                    
+                    const dimensionScore = answeredQuestions > 0 ? dimensionTotal / answeredQuestions : 0;
+                    dimensionScores[dimension.id] = {
+                        name: dimension.name,
+                        score: dimensionScore.toFixed(1),
+                        color: dimension.color,
+                        answeredQuestions: answeredQuestions,
+                        totalQuestions: dimension.questions.length
+                    };
+                });
+                
+                // Calculate overall score
+                let overallTotal = 0;
+                let overallAnswered = 0;
+                
+                Object.values(dimensionScores).forEach(dimension => {
+                    overallTotal += parseFloat(dimension.score) * dimension.answeredQuestions;
+                    overallAnswered += dimension.answeredQuestions;
+                });
+                
+                const overallScore = overallAnswered > 0 ? (overallTotal / overallAnswered).toFixed(1) : 0;
+                
+                // Update UI with results
+                updateResultsUI(overallScore, dimensionScores);
+            }
+            
+            function updateResultsUI(overallScore, dimensionScores) {
+                // Update overall maturity gauge
+                const overallMaturityScore = document.getElementById('overallMaturityScore');
+                const overallMaturityLabel = document.getElementById('overallMaturityLabel');
+                const overallMaturityDescription = document.getElementById('overallMaturityDescription');
+                
+                if (overallMaturityScore && overallMaturityLabel) {
+                    overallMaturityScore.textContent = overallScore;
+                    
+                    // Determine maturity level
+                    let maturityLevel = '';
+                    let maturityDescription = '';
+                    let gaugeColor = '';
+                    
+                    if (overallScore < 1.5) {
+                        maturityLevel = 'Initial (Level 1)';
+                        maturityDescription = 'Processes are ad hoc and largely undocumented. Success depends on individual effort.';
+                        gaugeColor = '#dc3545'; // danger
+                    } else if (overallScore < 2.5) {
+                        maturityLevel = 'Managed (Level 2)';
+                        maturityDescription = 'Basic processes are established and documented. Discipline exists to maintain processes.';
+                        gaugeColor = '#ffc107'; // warning
+                    } else if (overallScore < 3.5) {
+                        maturityLevel = 'Defined (Level 3)';
+                        maturityDescription = 'Processes are well documented and standardized. Some measurement and process improvement exists.';
+                        gaugeColor = '#0dcaf0'; // info
+                    } else if (overallScore < 4.5) {
+                        maturityLevel = 'Quantitative (Level 4)';
+                        maturityDescription = 'Processes are measured and controlled using statistical techniques. Process performance is predictable.';
+                        gaugeColor = '#0d6efd'; // primary
+                    } else {
+                        maturityLevel = 'Optimizing (Level 5)';
+                        maturityDescription = 'Focus on continuous process improvement. Innovation and optimization are embedded in the culture.';
+                        gaugeColor = '#198754'; // success
+                    }
+                    
+                    overallMaturityLabel.textContent = maturityLevel;
+                    overallMaturityDescription.textContent = maturityDescription;
+                    
+                    // Update gauge chart
+                    const gaugeCtx = document.getElementById('overallMaturityGauge').getContext('2d');
+                    new Chart(gaugeCtx, {
+                        type: 'doughnut',
+                        data: {
+                            datasets: [{
+                                data: [parseFloat(overallScore), 5 - parseFloat(overallScore)],
+                                backgroundColor: [gaugeColor, '#e9ecef'],
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            cutout: '75%',
+                            rotation: -90,
+                            circumference: 180,
+                            plugins: {
+                                legend: {
+                                    display: false
+                                },
+                                tooltip: {
+                                    enabled: false
+                                }
+                            },
+                            animation: {
+                                animateRotate: true,
+                                animateScale: true
+                            }
+                        }
+                    });
+                }
+                
+                // Update dimension scores chart
+                const dimensionNames = [];
+                const dimensionScoreValues = [];
+                const dimensionColors = [];
+                
+                Object.values(dimensionScores).forEach(dimension => {
+                    dimensionNames.push(dimension.name);
+                    dimensionScoreValues.push(parseFloat(dimension.score));
+                    
+                    // Set color based on dimension color
+                    let color;
+                    switch (dimension.color) {
+                        case 'primary': color = '#0d6efd'; break;
+                        case 'success': color = '#198754'; break;
+                        case 'info': color = '#0dcaf0'; break;
+                        case 'warning': color = '#ffc107'; break;
+                        case 'danger': color = '#dc3545'; break;
+                        default: color = '#6c757d'; // secondary
+                    }
+                    dimensionColors.push(color);
+                });
+                
+                const dimensionCtx = document.getElementById('dimensionScoresChart').getContext('2d');
+                new Chart(dimensionCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: dimensionNames,
+                        datasets: [{
+                            label: 'Dimension Scores',
+                            data: dimensionScoreValues,
+                            backgroundColor: 'rgba(13, 110, 253, 0.2)',
+                            borderColor: '#0d6efd',
+                            pointBackgroundColor: dimensionColors,
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: dimensionColors
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            r: {
+                                angleLines: {
+                                    display: true
+                                },
+                                suggestedMin: 0,
+                                suggestedMax: 5,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+                
+                // Update dimension analysis table
+                const dimensionAnalysisTable = document.getElementById('dimensionAnalysisTable');
+                if (dimensionAnalysisTable) {
+                    dimensionAnalysisTable.innerHTML = '';
+                    
+                    Object.values(dimensionScores).forEach(dimension => {
+                        const row = document.createElement('tr');
+                        
+                        // Determine maturity level
+                        let maturityLevel = '';
+                        let levelClass = '';
+                        
+                        if (dimension.score < 1.5) {
+                            maturityLevel = 'Initial (Level 1)';
+                            levelClass = 'text-danger';
+                        } else if (dimension.score < 2.5) {
+                            maturityLevel = 'Managed (Level 2)';
+                            levelClass = 'text-warning';
+                        } else if (dimension.score < 3.5) {
+                            maturityLevel = 'Defined (Level 3)';
+                            levelClass = 'text-info';
+                        } else if (dimension.score < 4.5) {
+                            maturityLevel = 'Quantitative (Level 4)';
+                            levelClass = 'text-primary';
+                        } else {
+                            maturityLevel = 'Optimizing (Level 5)';
+                            levelClass = 'text-success';
+                        }
+                        
+                        // Generate strengths and improvement areas based on score
+                        let strengths = '';
+                        let improvements = '';
+                        
+                        if (dimension.name === 'Process Definition') {
+                            if (dimension.score >= 3) {
+                                strengths = 'Processes are well-documented and standardized';
+                            } else {
+                                improvements = 'Improve process documentation and standardization';
+                            }
+                        } else if (dimension.name === 'Process Measurement') {
+                            if (dimension.score >= 3) {
+                                strengths = 'Good metrics collection and performance tracking';
+                            } else {
+                                improvements = 'Establish KPIs and regular measurement practices';
+                            }
+                        } else if (dimension.name === 'Process Governance') {
+                            if (dimension.score >= 3) {
+                                strengths = 'Clear roles and responsibilities for process management';
+                            } else {
+                                improvements = 'Establish governance structure and accountability';
+                            }
+                        } else if (dimension.name === 'Process Technology') {
+                            if (dimension.score >= 3) {
+                                strengths = 'Effective use of technology to support processes';
+                            } else {
+                                improvements = 'Improve technology integration and automation';
+                            }
+                        } else if (dimension.name === 'Process Culture') {
+                            if (dimension.score >= 3) {
+                                strengths = 'Strong process-oriented culture and leadership support';
+                            } else {
+                                improvements = 'Develop process-oriented culture and leadership buy-in';
+                            }
+                        }
+                        
+                        row.innerHTML = `
+                            <td><strong>${dimension.name}</strong></td>
+                            <td><span class="badge bg-${dimension.color}">${dimension.score}</span></td>
+                            <td class="${levelClass}">${maturityLevel}</td>
+                            <td>${strengths || 'N/A'}</td>
+                            <td>${improvements || 'N/A'}</td>
+                        `;
+                        
+                        dimensionAnalysisTable.appendChild(row);
+                    });
+                }
+                
+                // Generate recommendations
+                const recommendationsContainer = document.getElementById('recommendationsContainer');
+                if (recommendationsContainer) {
+                    recommendationsContainer.innerHTML = '';
+                    
+                    // Sort dimensions by score (lowest first)
+                    const sortedDimensions = Object.values(dimensionScores).sort((a, b) => a.score - b.score);
+                    
+                    // Generate recommendations for the lowest 3 dimensions
+                    const topRecommendations = sortedDimensions.slice(0, 3);
+                    
+                    topRecommendations.forEach(dimension => {
+                        const recommendationCard = document.createElement('div');
+                        recommendationCard.className = 'card mb-3';
+                        
+                        let recommendations = [];
+                        
+                        if (dimension.name === 'Process Definition') {
+                            recommendations = [
+                                'Document all key business processes using a standardized notation (e.g., BPMN)',
+                                'Establish process ownership and responsibilities',
+                                'Create a central process repository accessible to all stakeholders',
+                                'Implement regular process review cycles'
+                            ];
+                        } else if (dimension.name === 'Process Measurement') {
+                            recommendations = [
+                                'Define key performance indicators (KPIs) for all critical processes',
+                                'Implement a measurement system to track process performance',
+                                'Establish regular reporting and review of process metrics',
+                                'Use data analytics to identify improvement opportunities'
+                            ];
+                        } else if (dimension.name === 'Process Governance') {
+                            recommendations = [
+                                'Establish a BPM Center of Excellence',
+                                'Define clear roles and responsibilities for process management',
+                                'Implement a process change management framework',
+                                'Develop policies and standards for process management'
+                            ];
+                        } else if (dimension.name === 'Process Technology') {
+                            recommendations = [
+                                'Evaluate and implement appropriate BPM tools',
+                                'Integrate BPM tools with existing enterprise systems',
+                                'Automate routine and repetitive processes',
+                                'Implement process monitoring and alerting capabilities'
+                            ];
+                        } else if (dimension.name === 'Process Culture') {
+                            recommendations = [
+                                'Develop a process-oriented mindset through training and awareness',
+                                'Secure executive sponsorship for BPM initiatives',
+                                'Recognize and reward process improvement contributions',
+                                'Establish communities of practice for knowledge sharing'
+                            ];
+                        }
+                        
+                        recommendationCard.innerHTML = `
+                            <div class="card-header bg-${dimension.color} text-white">
+                                <h5 class="mb-0">${dimension.name} Recommendations</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Current Score: <span class="badge bg-${dimension.color}">${dimension.score}</span></p>
+                                <ul class="recommendation-list">
+                                    ${recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                        
+                        recommendationsContainer.appendChild(recommendationCard);
+                    });
+                }
+                
+                // Generate roadmap
+                generateRoadmap(dimensionScores);
+            }
+            
+            function generateRoadmap(dimensionScores) {
+                // Sort dimensions by score (lowest first)
+                const sortedDimensions = Object.values(dimensionScores).sort((a, b) => a.score - b.score);
+                
+                // Phase 1: Focus on the lowest scoring dimensions
+                const phase1Container = document.getElementById('roadmapPhase1');
+                if (phase1Container) {
+                    phase1Container.innerHTML = '';
+                    
+                    const phase1Dimensions = sortedDimensions.slice(0, 2);
+                    phase1Dimensions.forEach(dimension => {
+                        let actions = [];
+                        
+                        if (dimension.name === 'Process Definition') {
+                            actions = [
+                                'Document top 5 critical business processes',
+                                'Establish process ownership model',
+                                'Create initial process repository'
+                            ];
+                        } else if (dimension.name === 'Process Measurement') {
+                            actions = [
+                                'Define KPIs for critical processes',
+                                'Implement basic measurement system',
+                                'Establish monthly reporting'
+                            ];
+                        } else if (dimension.name === 'Process Governance') {
+                            actions = [
+                                'Define BPM roles and responsibilities',
+                                'Establish process council',
+                                'Develop basic governance policies'
+                            ];
+                        } else if (dimension.name === 'Process Technology') {
+                            actions = [
+                                'Assess current technology landscape',
+                                'Select appropriate BPM tools',
+                                'Implement pilot automation project'
+                            ];
+                        } else if (dimension.name === 'Process Culture') {
+                            actions = [
+                                'Conduct BPM awareness training',
+                                'Secure executive sponsorship',
+                                'Establish process improvement incentives'
+                            ];
+                        }
+                        
+                        const actionsList = document.createElement('div');
+                        actionsList.className = 'roadmap-actions';
+                        actionsList.innerHTML = `
+                            <h6>${dimension.name}</h6>
+                            <ul>
+                                ${actions.map(action => `<li>${action}</li>`).join('')}
+                            </ul>
+                        `;
+                        
+                        phase1Container.appendChild(actionsList);
+                    });
+                }
+                
+                // Phase 2: Focus on the middle scoring dimensions
+                const phase2Container = document.getElementById('roadmapPhase2');
+                if (phase2Container) {
+                    phase2Container.innerHTML = '';
+                    
+                    const phase2Dimensions = sortedDimensions.slice(2, 4);
+                    phase2Dimensions.forEach(dimension => {
+                        let actions = [];
+                        
+                        if (dimension.name === 'Process Definition') {
+                            actions = [
+                                'Expand process documentation to all key processes',
+                                'Implement process standardization',
+                                'Establish regular process review cycles'
+                            ];
+                        } else if (dimension.name === 'Process Measurement') {
+                            actions = [
+                                'Expand KPIs to all key processes',
+                                'Implement advanced analytics',
+                                'Establish process benchmarking'
+                            ];
+                        } else if (dimension.name === 'Process Governance') {
+                            actions = [
+                                'Establish BPM Center of Excellence',
+                                'Implement comprehensive change management',
+                                'Develop advanced governance framework'
+                            ];
+                        } else if (dimension.name === 'Process Technology') {
+                            actions = [
+                                'Expand automation to more processes',
+                                'Integrate BPM tools with enterprise systems',
+                                'Implement process monitoring capabilities'
+                            ];
+                        } else if (dimension.name === 'Process Culture') {
+                            actions = [
+                                'Expand BPM training program',
+                                'Establish communities of practice',
+                                'Implement process improvement methodology'
+                            ];
+                        }
+                        
+                        const actionsList = document.createElement('div');
+                        actionsList.className = 'roadmap-actions';
+                        actionsList.innerHTML = `
+                            <h6>${dimension.name}</h6>
+                            <ul>
+                                ${actions.map(action => `<li>${action}</li>`).join('')}
+                            </ul>
+                        `;
+                        
+                        phase2Container.appendChild(actionsList);
+                    });
+                }
+                
+                // Phase 3: Focus on optimization and innovation
+                const phase3Container = document.getElementById('roadmapPhase3');
+                if (phase3Container) {
+                    phase3Container.innerHTML = '';
+                    
+                    const phase3Dimensions = sortedDimensions.slice(4);
+                    
+                    // If we have dimensions for phase 3
+                    if (phase3Dimensions.length > 0) {
+                        phase3Dimensions.forEach(dimension => {
+                            let actions = [];
+                            
+                            if (dimension.name === 'Process Definition') {
+                                actions = [
+                                    'Implement continuous process improvement',
+                                    'Establish process innovation program',
+                                    'Develop advanced process modeling capabilities'
+                                ];
+                            } else if (dimension.name === 'Process Measurement') {
+                                actions = [
+                                    'Implement predictive analytics',
+                                    'Establish real-time monitoring',
+                                    'Develop advanced performance management'
+                                ];
+                            } else if (dimension.name === 'Process Governance') {
+                                actions = [
+                                    'Optimize governance framework',
+                                    'Implement enterprise-wide process architecture',
+                                    'Establish strategic alignment mechanisms'
+                                ];
+                            } else if (dimension.name === 'Process Technology') {
+                                actions = [
+                                    'Implement intelligent automation (RPA, AI)',
+                                    'Establish digital process twins',
+                                    'Develop advanced process intelligence'
+                                ];
+                            } else if (dimension.name === 'Process Culture') {
+                                actions = [
+                                    'Establish process innovation culture',
+                                    'Implement knowledge management system',
+                                    'Develop advanced change leadership'
+                                ];
+                            }
+                            
+                            const actionsList = document.createElement('div');
+                            actionsList.className = 'roadmap-actions';
+                            actionsList.innerHTML = `
+                                <h6>${dimension.name}</h6>
+                                <ul>
+                                    ${actions.map(action => `<li>${action}</li>`).join('')}
+                                </ul>
+                            `;
+                            
+                            phase3Container.appendChild(actionsList);
+                        });
+                    } else {
+                        // General optimization actions if no specific dimensions
+                        const actionsList = document.createElement('div');
+                        actionsList.className = 'roadmap-actions';
+                        actionsList.innerHTML = `
+                            <h6>Enterprise-wide Optimization</h6>
+                            <ul>
+                                <li>Implement continuous process improvement across all dimensions</li>
+                                <li>Establish innovation program for all process areas</li>
+                                <li>Develop advanced analytics and AI capabilities</li>
+                                <li>Optimize enterprise process architecture</li>
+                                <li>Establish process excellence culture</li>
+                            </ul>
+                        `;
+                        
+                        phase3Container.appendChild(actionsList);
+                    }
+                }
+            }
+            
+            // Save Assessment button
+            const saveAssessmentBtn = document.getElementById('saveAssessmentBtn');
+            if (saveAssessmentBtn) {
+                saveAssessmentBtn.addEventListener('click', function() {
+                    // Collect all answers
+                    const answers = {};
+                    questionInputs.forEach(input => {
+                        if (input.checked) {
+                            const dimensionId = input.getAttribute('data-dimension');
+                            const questionId = input.getAttribute('data-question');
+                            const value = input.value;
+                            
+                            if (!answers[dimensionId]) {
+                                answers[dimensionId] = {};
+                            }
+                            
+                            answers[dimensionId][questionId] = value;
+                        }
+                    });
+                    
+                    // Save to localStorage for demo purposes
+                    localStorage.setItem('bpmMaturityAssessment', JSON.stringify(answers));
+                    
+                    // Show success message
+                    alert('Assessment progress saved successfully!');
+                });
+            }
+            
+            // Reset Assessment button
+            const resetAssessmentBtn = document.getElementById('resetAssessmentBtn');
+            if (resetAssessmentBtn) {
+                resetAssessmentBtn.addEventListener('click', function() {
+                    if (confirm('Are you sure you want to reset the assessment? All your answers will be cleared.')) {
+                        // Clear all selected options
+                        questionInputs.forEach(input => {
+                            input.checked = false;
+                        });
+                        
+                        // Clear localStorage
+                        localStorage.removeItem('bpmMaturityAssessment');
+                        
+                        // Update progress
+                        updateProgress();
+                        
+                        // Show success message
+                        alert('Assessment has been reset successfully!');
+                        
+                        // Navigate to overview
+                        showSection('overview');
+                    }
+                });
+            }
+            
+            // Load saved assessment if available
+            const savedAssessment = localStorage.getItem('bpmMaturityAssessment');
+            if (savedAssessment) {
+                const answers = JSON.parse(savedAssessment);
+                
+                // Apply saved answers
+                for (const dimensionId in answers) {
+                    for (const questionId in answers[dimensionId]) {
+                        const value = answers[dimensionId][questionId];
+                        const input = document.querySelector(`input[data-dimension="${dimensionId}"][data-question="${questionId}"][value="${value}"]`);
+                        if (input) {
+                            input.checked = true;
+                        }
+                    }
+                }
+                
+                // Update progress
+                updateProgress();
+            }
+            
+            // Download Report button
+            const downloadReportBtn = document.getElementById('downloadReportBtn');
+            if (downloadReportBtn) {
+                downloadReportBtn.addEventListener('click', function() {
+                    alert('Generating PDF report... This feature would generate a comprehensive PDF report with all assessment results and recommendations.');
+                });
+            }
+            
+            // Save Results button
+            const saveResultsBtn = document.getElementById('saveResultsBtn');
+            if (saveResultsBtn) {
+                saveResultsBtn.addEventListener('click', function() {
+                    alert('Results saved successfully! You can access them from your dashboard.');
+                });
+            }
+            
+            // Initialize with overview section
+            showSection('overview');
+        });
+    </script>
+    <style>
+        /* Maturity Assessment Specific Styles */
+        .dimension-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.25rem;
+        }
+        
+        .question-card {
+            background-color: #fff;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--box-shadow-sm);
+        }
+        
+        .maturity-options {
+            margin-top: 1.5rem;
+        }
+        
+        .maturity-option {
+            margin-bottom: 1rem;
+            padding: 0;
+        }
+        
+        .maturity-option .form-check-input {
+            position: absolute;
+            opacity: 0;
+        }
+        
+        .maturity-option .form-check-label {
+            display: flex;
+            padding: 1rem;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition-base);
+        }
+        
+        .maturity-option .form-check-input:checked + .form-check-label {
+            border-color: var(--primary-color);
+            background-color: rgba(63, 81, 181, 0.05);
+            box-shadow: 0 0 0 0.2rem rgba(63, 81, 181, 0.25);
+        }
+        
+        .maturity-level-indicator {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            flex-shrink: 0;
+        }
+        
+        .level-1 {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        
+        .level-2 {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .level-3 {
+            background-color: #0dcaf0;
+            color: #212529;
+        }
+        
+        .level-4 {
+            background-color: #0d6efd;
+            color: #fff;
+        }
+        
+        .level-5 {
+            background-color: #198754;
+            color: #fff;
+        }
+        
+        .level-number {
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+        
+        .maturity-level-content {
+            flex-grow: 1;
+        }
+        
+        .maturity-level-content h5 {
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        
+        .maturity-level-content p {
+            margin-bottom: 0;
+            color: var(--gray-600);
+            font-size: 0.875rem;
+        }
+        
+        .maturity-gauge-container {
+            position: relative;
+            width: 200px;
+            height: 100px;
+            margin: 0 auto;
+        }
+        
+        .maturity-gauge-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, 0);
+            text-align: center;
+        }
+        
+        .roadmap-container {
+            margin-top: 1.5rem;
+        }
+        
+        .roadmap-timeline {
+            position: relative;
+            padding: 1rem 0;
+        }
+        
+        .roadmap-phase {
+            margin-bottom: 2rem;
+        }
+        
+        .roadmap-phase:last-child {
+            margin-bottom: 0;
+        }
+        
+        .roadmap-phase-header {
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--gray-300);
+        }
+        
+        .roadmap-phase-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .roadmap-actions {
+            flex: 1;
+            min-width: 250px;
+            background-color: #f8f9fa;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+        }
+        
+        .roadmap-actions h6 {
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .roadmap-actions ul {
+            padding-left: 1.25rem;
+            margin-bottom: 0;
+        }
+        
+        .roadmap-actions li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .roadmap-actions li:last-child {
+            margin-bottom: 0;
+        }
+        
+        [data-theme="dark"] .question-card {
+            background-color: var(--card-bg);
+        }
+        
+        [data-theme="dark"] .maturity-option .form-check-label {
+            border-color: var(--card-border-color);
+        }
+        
+        [data-theme="dark"] .maturity-option .form-check-input:checked + .form-check-label {
+            border-color: var(--primary-color);
+            background-color: rgba(92, 107, 192, 0.1);
+        }
+        
+        [data-theme="dark"] .maturity-level-content p {
+            color: var(--gray-400);
+        }
+        
+        [data-theme="dark"] .roadmap-actions {
+            background-color: var(--card-bg);
+        }
+        
+        [data-theme="dark"] .roadmap-phase-header {
+            border-color: var(--card-border-color);
+        }
+        
+        @media (max-width: 767.98px) {
+            .maturity-option .form-check-label {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            
+            .maturity-level-indicator {
+                margin-right: 0;
+                margin-bottom: 1rem;
+            }
+        }
+    </style>
+</body>
+</html>

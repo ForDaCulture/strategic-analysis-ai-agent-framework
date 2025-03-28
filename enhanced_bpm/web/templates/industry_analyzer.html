@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPM Principles Explorer - Industry Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/enhanced-styles.css') }}">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="bi bi-diagram-3"></i> BPM Principles Explorer
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="bi bi-book"></i> BPM Knowledge Base
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('industry_analyzer') }}">
+                            <i class="bi bi-graph-up"></i> Industry Analyzer
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('process_modeler') }}">
+                            <i class="bi bi-diagram-2"></i> Process Modeler
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-tools"></i> Tools
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('maturity_assessment') }}">
+                                    <i class="bi bi-check2-square"></i> Maturity Assessment
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('process_simulator') }}">
+                                    <i class="bi bi-play-circle"></i> Process Simulator
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('roi_calculator') }}">
+                                    <i class="bi bi-calculator"></i> ROI Calculator
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('data_manager') }}">
+                                    <i class="bi bi-database"></i> Data Manager
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+                <form class="d-flex" id="searchForm" action="{{ url_for('search') }}" method="get">
+                    <div class="input-group">
+                        <input class="form-control" type="search" name="q" placeholder="Search industries..." aria-label="Search">
+                        <button class="btn btn-outline-light" type="submit">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <div class="container-fluid py-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-lg-3 col-xl-2 mb-4">
+                <div class="sidebar">
+                    <h4 class="sidebar-header">Select Industry</h4>
+                    <div class="list-group list-group-flush">
+                        {% for industry in available_industries %}
+                        <a href="{{ url_for('set_industry', industry_name=industry) }}" 
+                           class="list-group-item list-group-item-action {% if current_industry == industry %}active{% endif %}">
+                            <i class="bi bi-building"></i> {{ industry }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if current_industry %}
+                    <h4 class="sidebar-header mt-4">Analysis Tools</h4>
+                    <div class="list-group list-group-flush">
+                        <a href="#industry_overview" class="list-group-item list-group-item-action">
+                            <i class="bi bi-info-circle"></i> Industry Overview
+                        </a>
+                        <a href="#competitive_landscape" class="list-group-item list-group-item-action">
+                            <i class="bi bi-people"></i> Competitive Landscape
+                        </a>
+                        <a href="#porter_five_forces" class="list-group-item list-group-item-action">
+                            <i class="bi bi-diagram-3"></i> Porter's Five Forces
+                        </a>
+                        <a href="#value_chain" class="list-group-item list-group-item-action">
+                            <i class="bi bi-link"></i> Value Chain Analysis
+                        </a>
+                        <a href="#balanced_scorecard" class="list-group-item list-group-item-action">
+                            <i class="bi bi-layout-wtf"></i> Balanced Scorecard
+                        </a>
+                        <a href="#business_processes" class="list-group-item list-group-item-action">
+                            <i class="bi bi-gear"></i> Business Processes
+                        </a>
+                        <a href="#optimization_recommendations" class="list-group-item list-group-item-action">
+                            <i class="bi bi-lightbulb"></i> Optimization Recommendations
+                        </a>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <button id="printBtn" class="btn btn-outline-primary w-100 mb-2">
+                            <i class="bi bi-printer"></i> Print Analysis
+                        </button>
+                        <button id="exportBtn" class="btn btn-outline-primary w-100" data-file="{{ current_industry }}">
+                            <i class="bi bi-download"></i> Export Analysis
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="col-lg-9 col-xl-10">
+                {% if not current_industry %}
+                <!-- No Industry Selected -->
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-building" style="font-size: 4rem; color: #6c757d;"></i>
+                        <h2 class="mt-3">Select an Industry</h2>
+                        <p class="text-muted">Choose an industry from the sidebar to view detailed BPM analysis.</p>
+                        <div class="row justify-content-center mt-4">
+                            <div class="col-md-8">
+                                <div class="row">
+                                    {% for industry in available_industries[:6] %}
+                                    <div class="col-md-4 mb-3">
+                                        <a href="{{ url_for('set_industry', industry_name=industry) }}" class="btn btn-outline-primary w-100">
+                                            {{ industry }}
+                                        </a>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Industry Analysis Content -->
+                <div id="industryContent">
+                    <!-- Industry Overview -->
+                    <section id="industry_overview" class="mb-5">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="bi bi-info-circle text-primary me-2"></i> {{ current_industry }} Industry Overview</h2>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i> Export Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-share me-2"></i> Share</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <h3 class="card-title">Description</h3>
+                                        <p>{{ industry_overview.description }}</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card mb-4">
+                                            <div class="card-header bg-primary text-white">
+                                                <h4 class="card-title mb-0">Key Segments</h4>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="list-group list-group-flush">
+                                                    {% for segment in industry_overview.key_segments %}
+                                                    <div class="list-group-item">
+                                                        <h5>{{ segment.name }}</h5>
+                                                        <p>{{ segment.description }}</p>
+                                                        <div class="d-flex justify-content-between">
+                                                            <span><strong>Market Share:</strong> {{ segment.market_share }}</span>
+                                                            <span><strong>Growth:</strong> {{ segment.growth_rate }}</span>
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="card mb-4">
+                                            <div class="card-header bg-success text-white">
+                                                <h4 class="card-title mb-0">Industry Drivers</h4>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="list-group list-group-flush">
+                                                    {% for driver in industry_overview.drivers %}
+                                                    <div class="list-group-item">
+                                                        <h5>{{ driver.factor }}</h5>
+                                                        <p>{{ driver.description }}</p>
+                                                        <div><strong>Impact:</strong> {{ driver.impact }}</div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card mb-4">
+                                    <div class="card-header bg-info text-white">
+                                        <h4 class="card-title mb-0">Market Size</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <h5>Global Value</h5>
+                                            <p class="h3">{{ industry_overview.market_size.global_value }}</p>
+                                        </div>
+                                        <div class="mb-3">
+                                            <h5>Projected Growth</h5>
+                                            <p class="h3">{{ industry_overview.market_size.projected_growth }}</p>
+                                        </div>
+                                        <div>
+                                            <h5>Key Markets</h5>
+                                            <ul class="list-group list-group-flush">
+                                                {% for market in industry_overview.market_size.key_markets %}
+                                                <li class="list-group-item">{{ market }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-4">
+                                    <div class="card-header bg-danger text-white">
+                                        <h4 class="card-title mb-0">Challenges</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="list-group list-group-flush">
+                                            {% for challenge in industry_overview.challenges %}
+                                            <div class="list-group-item">
+                                                <h5>{{ challenge.challenge }}</h5>
+                                                <p>{{ challenge.description }}</p>
+                                                <div><strong>Impact:</strong> {{ challenge.impact }}</div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Competitive Landscape -->
+                    <section id="competitive_landscape" class="mb-5">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="bi bi-people text-success me-2"></i> Competitive Landscape</h2>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i> Export Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-share me-2"></i> Share</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <h4>Market Concentration</h4>
+                                        <p class="h5">{{ competitive_landscape.market_concentration }}</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h4>Competitive Intensity</h4>
+                                        <p class="h5">{{ competitive_landscape.competitive_intensity }}</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <h4>Entry Barriers</h4>
+                                        <p class="h5">{{ competitive_landscape.entry_barriers }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mb-3">Key Players</h3>
+                        <div class="row">
+                            {% for player in competitive_landscape.key_players %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header bg-primary text-white">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h4 class="mb-0">{{ player.name }}</h4>
+                                            <span class="badge bg-light text-primary">{{ player.market_share }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Headquarters:</strong> {{ player.headquarters }}</p>
+                                        
+                                        <h5>Key Strengths:</h5>
+                                        <ul>
+                                            {% for strength in player.key_strengths %}
+                                            <li>{{ strength }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                        
+                                        <h5>Key Weaknesses:</h5>
+                                        <ul>
+                                            {% for weakness in player.key_weaknesses %}
+                                            <li>{{ weakness }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                        
+                                        <h5>Process Capabilities:</h5>
+                                        <div class="progress mb-2">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ player.process_capabilities.automation_level }}%">
+                                                Automation: {{ player.process_capabilities.automation_level }}%
+                                            </div>
+                                        </div>
+                                        <div class="progress mb-2">
+                                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ player.process_capabilities.integration_level }}%">
+                                                Integration: {{ player.process_capabilities.integration_level }}%
+                                            </div>
+                                        </div>
+                                        <div class="progress mb-2">
+                                            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ player.process_capabilities.innovation_level }}%">
+                                                Innovation: {{ player.process_capabilities.innovation_level }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <h3 class="mb-3">New Entrants</h3>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="list-group list-group-flush">
+                                            {% for entrant in competitive_landscape.new_entrants %}
+                                            <div class="list-group-item">
+                                                <h5>{{ entrant.name }}</h5>
+                                                <p><strong>Focus:</strong> {{ entrant.focus }}</p>
+                                                <p><strong>Funding:</strong> {{ entrant.funding }}</p>
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <h6>Strengths:</h6>
+                                                        <p>{{ entrant.strengths }}</p>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <h6>Challenges:</h6>
+                                                        <p>{{ entrant.challenges }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <h3 class="mb-3">Strategic Partnerships</h3>
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="list-group list-group-flush">
+                                            {% for partnership in competitive_landscape.strategic_partnerships %}
+                                            <div class="list-group-item">
+                                                <h5>{{ partnership.partners|join(' + ') }}</h5>
+                                                <p><strong>Focus:</strong> {{ partnership.focus }}</p>
+                                                <p><strong>Impact:</strong> {{ partnership.impact }}</p>
+                                                <p><strong>Process Implications:</strong> {{ partnership.process_implications }}</p>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Porter's Five Forces -->
+                    <section id="porter_five_forces" class="mb-5">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="bi bi-diagram-3 text-info me-2"></i> Porter's Five Forces Analysis</h2>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i> Export Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-share me-2"></i> Share</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <p>{{ porter_five_forces.framework_description }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            {% for force_name, force in porter_five_forces.forces.items() %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header bg-info text-white">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h4 class="mb-0">{{ force_name|replace('_', ' ')|title }}</h4>
+                                            <span class="badge bg-light text-info">{{ force.level }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <h5>Key Factors:</h5>
+                                        <div class="list-group list-group-flush mb-3">
+                                            {% for factor in force.factors %}
+                                            <div class="list-group-item">
+                                                <h6>{{ factor.factor }}</h6>
+                                                <p>{{ factor.description }}</p>
+                                                <div><strong>Impact:</strong> {{ factor.impact }}</div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        <h5>Process Implications:</h5>
+                                        <ul>
+                                            {% for implication in force.process_implications %}
+                                            <li>{{ implication }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </section>
+
+                    <!-- Value Chain Analysis -->
+                    <section id="value_chain" class="mb-5">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="bi bi-link text-success me-2"></i> Value Chain Analysis</h2>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i> Export Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-share me-2"></i> Share</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <p>{{ value_chain.framework_description }}</p>
+                            </div>
+                        </div>
+                        
+                        <h3 class="mb-3">Primary Activities</h3>
+                        <div class="row">
+                            {% for activity_name, activity in value_chain.activities.items() if activity_name in ['inbound_logistics', 'operations', 'outbound_logistics', 'marketing_and_sales', 'service'] %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header bg-success text-white">
+                                        <h4 class="mb-0">{{ activity_name|replace('_', ' ')|title }}</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        {% if activity.key_processes %}
+                                        <h5>Key Processes:</h5>
+                                        <ul>
+                                            {% for process in activity.key_processes %}
+                                            <li>
+                                                {% if process is mapping %}
+                                                <strong>{{ process.name }}:</strong> {{ process.description }}
+                                                {% else %}
+                                                {{ process }}
+                                                {% endif %}
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% endif %}
+                                        
+                                        {% if activity.value_creation %}
+                                        <h5>Value Creation:</h5>
+                                        <p>{{ activity.value_creation }}</p>
+                                        {% endif %}
+                                        
+                                        {% if activity.digital_transformation_opportunities %}
+                                        <h5>Digital Transformation Opportunities:</h5>
+                                        <ul>
+                                            {% for opportunity in activity.digital_transformation_opportunities %}
+                                            <li>{{ opportunity }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% endif %}
+                                        
+                                        {% if activity.process_implications %}
+                                        <h5>Process Implications:</h5>
+                                        <ul>
+                                            {% for implication in activity.process_implications %}
+                                            <li>{{ implication }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <h3 class="mb-3 mt-4">Support Activities</h3>
+                        <div class="row">
+                            {% for activity_name, activity in value_chain.activities.items() if activity_name in ['firm_infrastructure', 'human_resource_management', 'technology_development', 'procurement'] %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header bg-info text-white">
+                                        <h4 class="mb-0">{{ activity_name|replace('_', ' ')|title }}</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        {% if activity.key_processes %}
+                                        <h5>Key Processes:</h5>
+                                        <ul>
+                                            {% for process in activity.key_processes %}
+                                            <li>
+                                                {% if process is mapping %}
+                                                <strong>{{ process.name }}:</strong> {{ process.description }}
+                                                {% else %}
+                                                {{ process }}
+                                                {% endif %}
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% endif %}
+                                        
+                                        {% if activity.value_creation %}
+                                        <h5>Value Creation:</h5>
+                                        <p>{{ activity.value_creation }}</p>
+                                        {% endif %}
+                                        
+                                        {% if activity.digital_transformation_opportunities %}
+                                        <h5>Digital Transformation Opportunities:</h5>
+                                        <ul>
+                                            {% for opportunity in activity.digital_transformation_opportunities %}
+                                            <li>{{ opportunity }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% endif %}
+                                        
+                                        {% if activity.process_implications %}
+                                        <h5>Process Implications:</h5>
+                                        <ul>
+                                            {% for implication in activity.process_implications %}
+                                            <li>{{ implication }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </section>
+
+                    <!-- Balanced Scorecard -->
+                    <section id="balanced_scorecard" class="mb-5">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="bi bi-layout-wtf text-primary me-2"></i> Balanced Scorecard Analysis</h2>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i> Export Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-share me-2"></i> Share</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <p>{{ balanced_scorecard.framework_description }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            {% for perspective_name, perspective in balanced_scorecard.perspectives.items() %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header bg-primary text-white">
+                                        <h4 class="mb-0">{{ perspective_name|replace('_', ' ')|title }}</h4>
+                                    </div>
+                                    <div class="card-body">
+                                        <h5>Key Objectives:</h5>
+                                        <ul class="mb-3">
+                                            {% for objective in perspective.objectives %}
+                                            <li>{{ objective }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                        
+                                        <h5>Key Metrics:</h5>
+                                        <div class="list-group list-group-flush mb-3">
+                                            {% for metric in perspective.metrics %}
+                                            <div class="list-group-item">
+                                                <h6>{{ metric.metric }}</h6>
+                                                <p>{{ metric.description }}</p>
+                                                <div><strong>Industry Benchmark:</strong> {{ metric.industry_benchmark }}</div>
+                                                <div><strong>Process Implications:</strong> {{ metric.process_implications }}</div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        
+                                        <h5>Process Maturity Assessment:</h5>
+                                        <div class="card mb-3">
+                                            <div class="card-body">
+                                                <h6>Current State:</h6>
+                                                <p>{{ perspective.maturity_assessment.current_state }}</p>
+                                                
+                                                <h6>Challenges:</h6>
+                                                <ul>
+                                                    {% for challenge in perspective.maturity_assessment.challenges %}
+                                                    <li>{{ challenge }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                                
+                                                <h6>Improvement Opportunities:</h6>
+                                                <ul>
+                                                    {% for opportunity in perspective.maturity_assessment.improvement_opportunities %}
+                                                    <li>{{ opportunity }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </section>
+
+                    <!-- Business Processes -->
+                    <section id="business_processes" class="mb-5">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="bi bi-gear text-secondary me-2"></i> Business Process Analysis</h2>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i> Export Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-share me-2"></i> Share</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion" id="processAccordion">
+                            {% for process_area, details in business_processes.items() %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="heading{{ loop.index }}">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
+                                            data-bs-target="#collapse{{ loop.index }}">
+                                        <i class="bi bi-gear me-2"></i> {{ process_area|replace('_', ' ')|title }}
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" 
+                                     data-bs-parent="#processAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h5>Key Processes:</h5>
+                                                <ul class="mb-4">
+                                                    {% for process in details.key_processes %}
+                                                    <li>{{ process }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                                
+                                                <h5>Current State:</h5>
+                                                <p>{{ details.current_state }}</p>
+                                                
+                                                <h5>Key Challenges:</h5>
+                                                <div class="list-group list-group-flush mb-3">
+                                                    {% for challenge in details.key_challenges %}
+                                                    <div class="list-group-item">
+                                                        <h6>{{ challenge.challenge }}</h6>
+                                                        <p>{{ challenge.description }}</p>
+                                                        <h6>Process Implications:</h6>
+                                                        <ul>
+                                                            {% for implication in challenge.process_implications %}
+                                                            <li>{{ implication }}</li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-md-6">
+                                                <h5>Best Practices:</h5>
+                                                <ul class="mb-4">
+                                                    {% for practice in details.best_practices %}
+                                                    <li>{{ practice }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                                
+                                                <h5>Digital Transformation Opportunities:</h5>
+                                                <div class="list-group list-group-flush mb-3">
+                                                    {% for opportunity in details.digital_transformation_opportunities %}
+                                                    <div class="list-group-item">
+                                                        <h6>{{ opportunity.opportunity }}</h6>
+                                                        <p>{{ opportunity.description }}</p>
+                                                        <div><strong>Potential Impact:</strong> {{ opportunity.potential_impact }}</div>
+                                                        <div><strong>Implementation Complexity:</strong> {{ opportunity.implementation_complexity }}</div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                                
+                                                <h5>Key Performance Indicators:</h5>
+                                                <ul>
+                                                    {% for kpi in details.key_performance_indicators %}
+                                                    <li>{{ kpi }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </section>
+
+                    <!-- Optimization Recommendations -->
+                    <section id="optimization_recommendations" class="mb-5">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="bi bi-lightbulb text-warning me-2"></i> Process Optimization Recommendations</h2>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer me-2"></i> Print Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i> Export Section</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-share me-2"></i> Share</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        
+                        <ul class="nav nav-tabs mb-4" id="recommendationTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="short-term-tab" data-bs-toggle="tab" data-bs-target="#short-term" type="button" role="tab">
+                                    Short-Term (0-6 months)
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="medium-term-tab" data-bs-toggle="tab" data-bs-target="#medium-term" type="button" role="tab">
+                                    Medium-Term (6-18 months)
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="long-term-tab" data-bs-toggle="tab" data-bs-target="#long-term" type="button" role="tab">
+                                    Long-Term (18+ months)
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content" id="recommendationTabContent">
+                            <div class="tab-pane fade show active" id="short-term" role="tabpanel">
+                                <div class="row">
+                                    {% for rec in optimization_recommendations.short_term %}
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-success text-white">
+                                                <h4 class="mb-0">{{ rec.area }}: {{ rec.recommendation }}</h4>
+                                            </div>
+                                            <div class="card-body">
+                                                <p>{{ rec.description }}</p>
+                                                
+                                                <h5>Benefits:</h5>
+                                                <ul class="mb-3">
+                                                    {% for benefit in rec.benefits %}
+                                                    <li>{{ benefit }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                                
+                                                <h5>Implementation Approach:</h5>
+                                                <ol class="mb-3">
+                                                    {% for step in rec.implementation_approach %}
+                                                    <li>{{ step }}</li>
+                                                    {% endfor %}
+                                                </ol>
+                                                
+                                                <h5>Key Performance Indicators:</h5>
+                                                <ul>
+                                                    {% for kpi in rec.key_performance_indicators %}
+                                                    <li>{{ kpi }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="medium-term" role="tabpanel">
+                                <div class="row">
+                                    {% for rec in optimization_recommendations.medium_term %}
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-warning text-dark">
+                                                <h4 class="mb-0">{{ rec.area }}: {{ rec.recommendation }}</h4>
+                                            </div>
+                                            <div class="card-body">
+                                                <p>{{ rec.description }}</p>
+                                                
+                                                <h5>Benefits:</h5>
+                                                <ul class="mb-3">
+                                                    {% for benefit in rec.benefits %}
+                                                    <li>{{ benefit }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                                
+                                                <h5>Implementation Approach:</h5>
+                                                <ol class="mb-3">
+                                                    {% for step in rec.implementation_approach %}
+                                                    <li>{{ step }}</li>
+                                                    {% endfor %}
+                                                </ol>
+                                                
+                                                <h5>Key Performance Indicators:</h5>
+                                                <ul>
+                                                    {% for kpi in rec.key_performance_indicators %}
+                                                    <li>{{ kpi }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <div class="tab-pane fade" id="long-term" role="tabpanel">
+                                <div class="row">
+                                    {% for rec in optimization_recommendations.long_term %}
+                                    <div class="col-md-6 mb-4">
+                                        <div class="card h-100">
+                                            <div class="card-header bg-primary text-white">
+                                                <h4 class="mb-0">{{ rec.area }}: {{ rec.recommendation }}</h4>
+                                            </div>
+                                            <div class="card-body">
+                                                <p>{{ rec.description }}</p>
+                                                
+                                                <h5>Benefits:</h5>
+                                                <ul class="mb-3">
+                                                    {% for benefit in rec.benefits %}
+                                                    <li>{{ benefit }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                                
+                                                <h5>Implementation Approach:</h5>
+                                                <ol class="mb-3">
+                                                    {% for step in rec.implementation_approach %}
+                                                    <li>{{ step }}</li>
+                                                    {% endfor %}
+                                                </ol>
+                                                
+                                                <h5>Key Performance Indicators:</h5>
+                                                <ul>
+                                                    {% for kpi in rec.key_performance_indicators %}
+                                                    <li>{{ kpi }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h4 class="footer-title">BPM Principles Explorer</h4>
+                    <p>Your comprehensive platform for exploring, analyzing, and implementing Business Process Management principles, methodologies, and best practices.</p>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h4 class="footer-title">Explore</h4>
+                    <ul class="footer-links">
+                        <li class="footer-link"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                        <li class="footer-link"><a href="{{ url_for('index') }}">Knowledge Base</a></li>
+                        <li class="footer-link"><a href="{{ url_for('industry_analyzer') }}">Industry Analyzer</a></li>
+                        <li class="footer-link"><a href="{{ url_for('process_modeler') }}">Process Modeler</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h4 class="footer-title">Tools</h4>
+                    <ul class="footer-links">
+                        <li class="footer-link"><a href="{{ url_for('maturity_assessment') }}">Maturity Assessment</a></li>
+                        <li class="footer-link"><a href="{{ url_for('process_simulator') }}">Process Simulator</a></li>
+                        <li class="footer-link"><a href="{{ url_for('roi_calculator') }}">ROI Calculator</a></li>
+                        <li class="footer-link"><a href="{{ url_for('data_manager') }}">Data Manager</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h4 class="footer-title">Resources</h4>
+                    <ul class="footer-links">
+                        <li class="footer-link"><a href="{{ url_for('help') }}">Help & Documentation</a></li>
+                        <li class="footer-link"><a href="{{ url_for('api_docs') }}">API Documentation</a></li>
+                        <li class="footer-link"><a href="{{ url_for('tutorials') }}">Tutorials</a></li>
+                        <li class="footer-link"><a href="{{ url_for('faq') }}">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h4 class="footer-title">About</h4>
+                    <ul class="footer-links">
+                        <li class="footer-link"><a href="{{ url_for('about') }}">About Us</a></li>
+                        <li class="footer-link"><a href="{{ url_for('contact') }}">Contact</a></li>
+                        <li class="footer-link"><a href="{{ url_for('privacy') }}">Privacy Policy</a></li>
+                        <li class="footer-link"><a href="{{ url_for('terms') }}">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2023 BPM Principles Explorer. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scroll to Top Button -->
+    <button id="scrollTopBtn" class="btn btn-primary rounded-circle position-fixed bottom-0 end-0 m-4" style="display: none; z-index: 1000;">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='js/enhanced-scripts.js') }}"></script>
+</body>
+</html>

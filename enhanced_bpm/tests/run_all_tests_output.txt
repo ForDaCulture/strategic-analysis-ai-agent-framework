@@ -1,0 +1,17 @@
+$ python enhanced_bpm/tests/run_tests.py
+test_common_challenges (test_bpm_principles.TestBPMPrinciples.test_common_challenges) ... ok
+test_core_principles (test_bpm_principles.TestBPMPrinciples.test_core_principles) ... ok
+test_cross_references (test_bpm_principles.TestBPMPrinciples.test_cross_references) ... ok
+test_frameworks (test_bpm_principles.TestBPMPrinciples.test_frameworks) ... ok
+test_implementation_best_practices (test_bpm_principles.TestBPMPrinciples.test_implementation_best_practices) ... ok
+test_json_structure (test_bpm_principles.TestBPMPrinciples.test_json_structure) ... ok
+test_json_validity (test_bpm_principles.TestBPMPrinciples.test_json_validity) ... ok
+test_maturity_models (test_bpm_principles.TestBPMPrinciples.test_maturity_models) ... ok
+test_methodologies (test_bpm_principles.TestBPMPrinciples.test_methodologies) ... ok
+test_performance_metrics (test_bpm_principles.TestBPMPrinciples.test_performance_metrics) ... ok
+test_technology_enablers (test_bpm_principles.TestBPMPrinciples.test_technology_enablers) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.005s
+
+OK
